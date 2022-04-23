@@ -72,7 +72,8 @@ private void executeInternal(CachedQuery cachedQuery, @Nullable ParameterList qu
     ... // 一些连接关闭操作，暂且忽略
 }
 ```
-一路跟踪execute方法的调用链，我们找到了```org.postgresql.jdbc.PgStatement#executeInternal```，此时虽然不知道flags是什么，但我们看见了关键代码，开启autoCommit时，flags的第5位被设置为1，然后调用Executor的execute方法执行真正的查询操作。那么接下来只要找到类似判断`flags & 16 == 1`的地方即可。
+{: .nolineno }
+一路跟踪execute方法的调用链，我们找到了```org.postgresql.jdbc.PgStatement#executeInternal```，此时虽然不知道flags是什么，但我们看见了关键代码：开启autoCommit时，flags的第5位被设置为1，然后调用Executor的execute方法执行真正的查询操作。那么接下来只要找到类似判断`flags & 16 == 1`的地方即可。
 
 
 ## 思考
