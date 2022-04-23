@@ -1,12 +1,12 @@
 ---
 title: 从jdbc到Spring-tx，分析事务如何产生效果。（施工中）
 date: 2022-04-22 02:55:15 +0800
-categories: [JAVA,源码分析]
-tags: [Java, Spring, AOP, Transation, Jdbc, Mysql, CGLib]     # TAG names should always be lowercase
+categories: [JAVA,源码阅读]
+tags: [Java, Spring, AOP, Transation, Jdbc, Mysql, CGLib]
 ---
 
 
-## 背景
+## 前言
 
 今天同事提出一个观点：Spring Transation、Mybatis、jdbc中各有一个autoCommit配置项，代码中添加@Transation注解时Spring会设置自己的AutoCommit为false(关闭)，但由于Druid(连接池会创建jdbc connnect)默认为true(开启)，每一条sql查询还是会直接提交（相当于调用connection.comit()），导致事务失效。    
 那么我们就具体问题具体分析，通过自己阅读源码证实下这个上述结论的正确与否。
@@ -43,8 +43,7 @@ try{
 }
 ```
 
-要知道，数据库开启事务的方式是使用命令`begin`，说明JDBC通过控制autoCommit的开关，影响了execute方法的执行逻辑，那么接下来就阅读下execute方法的
-源码。JDBC是一个通用协议，具体的执行由JdbcDriver提供，其实每种驱动实现方式都大同小异，这里展示比较简洁易懂的pgsql驱动代码。
+要知道，数据库开启事务的方式是使用命令`begin`，JDBC没有通过API体现出来，说明他通过控制autoCommit的开关，影响了execute方法的执行逻辑。JDBC是一个通用协议，具体的执行由JdbcDriver提供，其实每种驱动实现方式都大同小异，这里展示比较简洁易懂的pgsql驱动代码。
 ```java
 private void executeInternal(CachedQuery cachedQuery, @Nullable ParameterList queryParameters, int flags) throws SQLException {
     this.closeForNextExecution();
@@ -70,22 +69,10 @@ private void executeInternal(CachedQuery cachedQuery, @Nullable ParameterList qu
         this.killTimerTask();
     }
 
-    synchronized(this) {
-        this.checkClosed();
-        currentResult = handler.getResults();
-        this.result = this.firstUnclosedResult = currentResult;
-        if (this.wantsGeneratedKeysOnce || this.wantsGeneratedKeysAlways) {
-            this.generatedKeys = currentResult;
-            this.result = ((ResultWrapper)Nullness.castNonNull(currentResult, "handler.getResults()")).getNext();
-            if (this.wantsGeneratedKeysOnce) {
-                this.wantsGeneratedKeysOnce = false;
-            }
-        }
-
-    }
+    ... // 一些连接关闭操作，暂且忽略
 }
 ```
-一路跟踪execute方法的调用链，我们找到了org.postgresql.jdbc.PgStatement#executeInternal，此时虽然不知道flags是什么，但我们看见了关键代码，开启autoCommit时，flags的第5位被设置为1，然后调用Executor的execute方法执行真正的查询操作。那么接下来只要找到类似判断`flags & 16 == 1`的地方即可。
+一路跟踪execute方法的调用链，我们找到了```org.postgresql.jdbc.PgStatement#executeInternal```，此时虽然不知道flags是什么，但我们看见了关键代码，开启autoCommit时，flags的第5位被设置为1，然后调用Executor的execute方法执行真正的查询操作。那么接下来只要找到类似判断`flags & 16 == 1`的地方即可。
 
 
 ## 思考
