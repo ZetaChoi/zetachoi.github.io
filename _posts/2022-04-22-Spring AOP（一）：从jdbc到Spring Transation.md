@@ -28,11 +28,11 @@ tags: [Java, Spring, AOP, Transation, Jdbc]
 ![2-3 Spirng commit](/assets/img/20200422/Druid_AutoCommitConfig.png)_2-3 Spirng commit_
 
 这样看起来，观点1、观点2都是对的。  
-虽然这个结论给的很粗糙，但结合当时在处理问题的情景，对autoCommit的概念又不熟悉，确实很难反驳。但已经隐隐感觉到这个结论有点问题。于是就有了以下的分析。
+即使这个结论给的很粗糙，但结合当时在处理问题的情景，对autoCommit的概念又不熟悉，确实很难反驳。但已经隐隐感觉到这个结论有点问题。于是就有了以下的分析。
 
 ## 我的分析
 
-首先从AutoCommit的功能开始，了解下JDBC的事务原理。
+因为不熟，所以先从AutoCommit的使用开始了解整个过程。
 
 ### JDBC的事务原理
  
@@ -320,7 +320,7 @@ public class DataSourceTransactionManager extends AbstractPlatformTransactionMan
 }
 ```
 
-最终，我们在这里找到了doBegin方法。Spring调用了connect.setAutoCommit(false)。
+最终，我们在这里找到了doBegin方法。Spring调用了connect.setAutoCommit(false)，接着就是前面分析过的，JDBC会在第一次执行时发送begin命令。
 
 ## 结论
 
