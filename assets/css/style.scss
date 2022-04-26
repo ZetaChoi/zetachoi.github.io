@@ -11,25 +11,35 @@ $tab-count: {{ site.tabs | size | plus: 1 }}; // plus 1 for home tab
 
 /* append your custom style below */
 html {
-    @media (prefers-color-scheme: light) {
-      &:not([data-mode]),
-      [data-mode=light] {
-        @include dark-syntax;
-      }
-  
-      &[data-mode=dark] {
-        @include dark-syntax;
-      }
+  @media (prefers-color-scheme: light) {
+    &:not([data-mode]),
+    [data-mode=light] {
+      @include dark-syntax;
     }
-  
-    @media (prefers-color-scheme: dark) {
-      &:not([data-mode]),
-      &[data-mode=dark] {
-        @include dark-syntax;
-      }
-  
-      &[data-mode=light] {
-        @include dark-syntax;
-      }
+
+    &[data-mode=dark] {
+      @include dark-syntax;
     }
   }
+
+  // @media (prefers-color-scheme: dark) {
+  //   &:not([data-mode]),
+  //   &[data-mode=dark] {
+  //     @include dark-syntax;
+  //   }
+
+  //   &[data-mode=light] {
+  //     @include dark-syntax;
+  //   }
+  // }
+}
+
+.highlight {
+  pre {
+    line-height: 1.2rem;
+  }
+} /* .highlight */
+
+.code-header {
+  $code-header-height: 1.5rem;
+}
