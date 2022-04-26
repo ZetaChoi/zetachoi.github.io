@@ -5,9 +5,9 @@
   If the number of TAB files has changed, the following variable is required.
   And it must be defined before `@import`.
 */
-// $tab-count: {{ site.tabs | size | plus: 1 }}; // plus 1 for home tab
+$tab-count: {{ site.tabs | size | plus: 1 }}; // plus 1 for home tab
 
-// @import "{{ site.theme }}";
+@import "{{ site.theme }}";
 
 /* append your custom style below */
 html {
@@ -15,12 +15,12 @@ html {
     &:not([data-mode]),
     [data-mode=light] {
       @include dark-syntax;
-      // --highlighter-rouge-color: #2f2f2f;
-      // --inline-code-bg: #f3f3f3;
-      // [class^=prompt-] {
-      //   --inline-code-bg: #fbfafa;
-      //   --highlighter-rouge-color: rgb(82 82 82);
-      // }
+      --highlighter-rouge-color: #2f2f2f;
+      --inline-code-bg: #f3f3f3;
+      [class^=prompt-] {
+        --inline-code-bg: #fbfafa;
+        --highlighter-rouge-color: rgb(82 82 82);
+      }
     }
   }
 }
