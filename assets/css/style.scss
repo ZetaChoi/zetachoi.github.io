@@ -37,4 +37,8 @@ html {
 
 .code-header {
   $code-header-height: 1.5rem;
+  height: $code-header-height;
+  button {
+    height: $code-header-height;
+  }
 }
