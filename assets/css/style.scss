@@ -15,6 +15,10 @@ html {
     &:not([data-mode]),
     [data-mode=light] {
       @include dark-syntax;
+
+      .highlight pre span { font-weight: normal !important; font-style: normal !important;}
+      .highlight .ge { color: inherit; font-style: italic; }
+
       --highlighter-rouge-color: #2f2f2f;
       --inline-code-bg: #f3f3f3;
       [class^=prompt-] {
