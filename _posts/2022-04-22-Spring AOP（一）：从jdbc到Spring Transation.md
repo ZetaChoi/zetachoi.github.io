@@ -1,7 +1,7 @@
 ---
 title: Spring AOP（一）：从jdbc到Spring Transation
 date: 2022-04-22 02:55:15 +0800
-categories: [源码阅读]
+categories: [源码阅读, Spring-AOP]
 tags: [Java, Spring, AOP, Transation, Jdbc]
 ---
 
