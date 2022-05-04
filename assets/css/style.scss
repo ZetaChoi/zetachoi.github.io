@@ -43,18 +43,18 @@ html {
   }
 }
 
-// div {
+div {
 //   &[class^='highlighter-rouge'],
 //   &.language-plaintext.highlighter-rouge,
 //   &.language-console.highlighter-rouge,
 //   &.language-terminal.highlighter-rouge,
 //   &.nolineno {
-//     pre.lineno {
-//       display: none;
-//     }
+    pre.lineno {
+      display: none;
+    }
 
 //     td.rouge-code {
 //       padding-left: 1.5rem;
 //     }
 //   }
-// }
+}
