@@ -20,7 +20,7 @@ tags: [Java, Spring, AOP, Transation]
 
 ## 揭示InterceptorChain获取过程
 
-当完全不理解一段源码的逻辑时，最需要的就是找到分析的切入点，从图1-1我们可以看得出`advised`承担了缓存切面监听器`Advisor`以及筛选当前所需监听器的功能，是个很重要的对象，因此我先选择`advised`对象来分析，
+当完全不理解一段源码的逻辑时，最需要的就是找到分析的切入点，从图1-1我们可以看得出`advised`承担了缓存切面监听器`Advisor`以及筛选当前所需监听器的功能，是个很重要的对象，因此我先选择`advised`对象来分析。
 
 ### AdvisedSupport的作用
 
