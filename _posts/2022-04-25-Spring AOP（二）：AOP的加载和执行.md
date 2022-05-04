@@ -237,6 +237,7 @@ public class BeanFactoryAdvisorRetrievalHelper {
 接着，aspectJAdvisorsBuilder的查找方法稍微麻烦一些，他取出了所有的JavaBean并依次检查两个规则
 1. 类上带了@Aspect注解
 2. 没有使用AspectJ创建静态代理类，这是为了避免重复创建代理类，也是Spring规范性的要求。
+
 ```java
 public class BeanFactoryAspectJAdvisorsBuilder {
     public List<Advisor> buildAspectJAdvisors() {
@@ -377,4 +378,4 @@ public class AspectJAwareAdvisorAutoProxyCreator extends AbstractAdvisorAutoProx
 
 ## 总结
 
-最后，我把上面的逻辑整理成流程图，整个AOP创建和使用的过程就一目了然了。
+最后，把上面的逻辑整理成流程图，整个AOP创建和使用的过程就一目了然了。
