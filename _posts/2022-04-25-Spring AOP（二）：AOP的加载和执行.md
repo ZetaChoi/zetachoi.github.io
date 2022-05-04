@@ -29,7 +29,7 @@ tags: [Java, Spring, AOP, Transation]
 
 虽然大部分参数都不明白意义，但可以看到包含了代理方法的缓存和切面监听器，说明能被切入的方法是在启动时就缓存好的。
 
-### AdvisedSupport - getInterceptorsAndDynamicInterceptionAdvice
+### getInterceptorsAndDynamicInterceptionAdvice
 从图1-1的调用开始，进入`getInterceptorsAndDynamicInterceptionAdvice`看看方法逻辑，代码比较长，但阅读源码时一般只要留意入参的使用过程，结合源码注释，就能很快梳理出逻辑，推荐阅读本文的同时自己debug加深理解。
 ``` java
 public class DefaultAdvisorChainFactory implements AdvisorChainFactory, Serializable {
@@ -110,7 +110,7 @@ public class DefaultAdvisorChainFactory implements AdvisorChainFactory, Serializ
 - registry包含了一些默认的切点，registry.getInterceptors其实是对当前advisor的再次包装，除了获取到当前Advisor的Interceptor，也会判断是否需要把这些默认切点拦截器加入到列表中。
 
 ### 阶段总结
-至此基本了解getInterceptorsAndDynamicInterceptionAdvice的功能了，同时也了解了Advisor：每一个切面都有一个代理拦截器Interceptor，和一系列的mather来决定是否需要执行该Interceptor，Advisor就是Spring管理Interceptor、mathodMather、classFilter以及其他相关的属性的顶级接口。
+至此基本了解getInterceptorsAndDynamicInterceptionAdvice的功能了。同时也了解到：Advisor作为SpringAop的顶级接口，负责管理代理拦截器Interceptor、切面过滤器PointCut；AdvisedSupport则负责在运行时管理调度这些Advisor，筛选出当前适用的切面。
 
 回过头来，Advised对象包含了所有已知的Advisor，为了了解Advisor如何被创建，下一步是查看advised的加载流程。
 
@@ -379,3 +379,4 @@ public class AspectJAwareAdvisorAutoProxyCreator extends AbstractAdvisorAutoProx
 ## 总结
 
 最后，把上面的逻辑整理成流程图，整个AOP创建和使用的过程就一目了然了。
+![5-1 flow](/assets/img/20220425/flow.png)
