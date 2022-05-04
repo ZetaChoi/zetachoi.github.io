@@ -148,32 +148,34 @@ public class DefaultAdvisorChainFactory implements AdvisorChainFactory, Serializ
 继续跟踪，找到了`findEligibleAdvisors`方法
 ```java
 public abstract class AbstractAdvisorAutoProxyCreator extends AbstractAutoProxyCreator {
-	protected List<Advisor> findEligibleAdvisors(Class<?> beanClass, String beanName) {
-		List<Advisor> candidateAdvisors = findCandidateAdvisors();
-		List<Advisor> eligibleAdvisors = findAdvisorsThatCanApply(candidateAdvisors, beanClass, beanName);
-		extendAdvisors(eligibleAdvisors);
-		if (!eligibleAdvisors.isEmpty()) {
-			eligibleAdvisors = sortAdvisors(eligibleAdvisors);
-		}
-		return eligibleAdvisors;
-	}
+    protected List<Advisor> findEligibleAdvisors(Class<?> beanClass, String beanName) {
+        List<Advisor> candidateAdvisors = findCandidateAdvisors();
+        List<Advisor> eligibleAdvisors = findAdvisorsThatCanApply(candidateAdvisors, beanClass, beanName);
+        extendAdvisors(eligibleAdvisors);
+        if (!eligibleAdvisors.isEmpty()) {
+            eligibleAdvisors = sortAdvisors(eligibleAdvisors);
+        }
+        return eligibleAdvisors;
+    }
 }
 ```
 
 ### findCandidateAdvisors - 获取所有的Advisor
-一行行来看，首先是`findCandidateAdvisors`，值得注意的是，`AnnotationAwareAspectJAutoProxyCreator`是`AbstractAdvisorAutoProxyCreator`的一种实现，使得不光可以用实现Advisor接口的方式创建切面(原生的SpringAOP)，也可以用Aspectj的API更简便地声明切面，`AnnotationAwareAspectJAutoProxyCreator`重写了`findCandidateAdvisors`方法，并且会在代码中存在Aspectj类型切面时生效：
+一行行来看，首先是`findCandidateAdvisors`，值得注意的是，`AnnotationAwareAspectJAutoProxyCreator`是`AbstractAdvisorAutoProxyCreator`的一种实现，使得不光可以用实现Advisor接口的方式创建切面(原生的SpringAOP)，也可以用Aspectj的API更简便地声明切面。
+
+`AnnotationAwareAspectJAutoProxyCreator`重写了`findCandidateAdvisors`方法，并且会在代码中存在Aspectj类型切面时生效：
 ```java
 public class AnnotationAwareAspectJAutoProxyCreator extends AspectJAwareAdvisorAutoProxyCreator {
     @Override
-	protected List<Advisor> findCandidateAdvisors() {
-		// Add all the Spring advisors found according to superclass rules.
-		List<Advisor> advisors = super.findCandidateAdvisors();
-		// Build Advisors for all AspectJ aspects in the bean factory.
-		if (this.aspectJAdvisorsBuilder != null) {
-			advisors.addAll(this.aspectJAdvisorsBuilder.buildAspectJAdvisors());
-		}
-		return advisors;
-	}
+    protected List<Advisor> findCandidateAdvisors() {
+        // Add all the Spring advisors found according to superclass rules.
+        List<Advisor> advisors = super.findCandidateAdvisors();
+        // Build Advisors for all AspectJ aspects in the bean factory.
+        if (this.aspectJAdvisorsBuilder != null) {
+            advisors.addAll(this.aspectJAdvisorsBuilder.buildAspectJAdvisors());
+        }
+        return advisors;
+    }
 }
 ```
 
@@ -181,116 +183,116 @@ public class AnnotationAwareAspectJAutoProxyCreator extends AspectJAwareAdvisorA
 ```java
 public class BeanFactoryAdvisorRetrievalHelper {
     public List<Advisor> findAdvisorBeans() { 
-		// Determine list of advisor bean names, if not cached already.
-		String[] advisorNames = this.cachedAdvisorBeanNames;
-		if (advisorNames == null) {
-			// Do not initialize FactoryBeans here: We need to leave all regular beans
-			// uninitialized to let the auto-proxy creator apply to them!
+        // Determine list of advisor bean names, if not cached already.
+        String[] advisorNames = this.cachedAdvisorBeanNames;
+        if (advisorNames == null) {
+            // Do not initialize FactoryBeans here: We need to leave all regular beans
+            // uninitialized to let the auto-proxy creator apply to them!
             // 通过设置allowEagerInit为false，避免获取时过早将对象实例化，早将实例化会导致跳过参数注入的环节
-			advisorNames = BeanFactoryUtils.beanNamesForTypeIncludingAncestors(
-					this.beanFactory, Advisor.class, true, false);
-			this.cachedAdvisorBeanNames = advisorNames;
-		}
-		if (advisorNames.length == 0) {
-			return new ArrayList<>();
-		}
+            advisorNames = BeanFactoryUtils.beanNamesForTypeIncludingAncestors(
+                    this.beanFactory, Advisor.class, true, false);
+            this.cachedAdvisorBeanNames = advisorNames;
+        }
+        if (advisorNames.length == 0) {
+            return new ArrayList<>();
+        }
 
-		List<Advisor> advisors = new ArrayList<>();
-		for (String name : advisorNames) {
-			if (isEligibleBean(name)) {
-				if (this.beanFactory.isCurrentlyInCreation(name)) {
-					if (logger.isTraceEnabled()) {
-						logger.trace("Skipping currently created advisor '" + name + "'");
-					}
-				}
-				else {
-					try {
-						advisors.add(this.beanFactory.getBean(name, Advisor.class));
-					}
-					catch (BeanCreationException ex) {
-						Throwable rootCause = ex.getMostSpecificCause();
-						if (rootCause instanceof BeanCurrentlyInCreationException) {
-							BeanCreationException bce = (BeanCreationException) rootCause;
-							String bceBeanName = bce.getBeanName();
-							if (bceBeanName != null && this.beanFactory.isCurrentlyInCreation(bceBeanName)) {
-								if (logger.isTraceEnabled()) {
-									logger.trace("Skipping advisor '" + name +
-											"' with dependency on currently created bean: " + ex.getMessage());
-								}
-								// Ignore: indicates a reference back to the bean we're trying to advise.
-								// We want to find advisors other than the currently created bean itself.
-								continue;
-							}
-						}
-						throw ex;
-					}
-				}
-			}
-		}
-		return advisors;
-	}
+        List<Advisor> advisors = new ArrayList<>();
+        for (String name : advisorNames) {
+            if (isEligibleBean(name)) {
+                if (this.beanFactory.isCurrentlyInCreation(name)) {
+                    if (logger.isTraceEnabled()) {
+                        logger.trace("Skipping currently created advisor '" + name + "'");
+                    }
+                }
+                else {
+                    try {
+                        advisors.add(this.beanFactory.getBean(name, Advisor.class));
+                    }
+                    catch (BeanCreationException ex) {
+                        Throwable rootCause = ex.getMostSpecificCause();
+                        if (rootCause instanceof BeanCurrentlyInCreationException) {
+                            BeanCreationException bce = (BeanCreationException) rootCause;
+                            String bceBeanName = bce.getBeanName();
+                            if (bceBeanName != null && this.beanFactory.isCurrentlyInCreation(bceBeanName)) {
+                                if (logger.isTraceEnabled()) {
+                                    logger.trace("Skipping advisor '" + name +
+                                            "' with dependency on currently created bean: " + ex.getMessage());
+                                }
+                                // Ignore: indicates a reference back to the bean we're trying to advise.
+                                // We want to find advisors other than the currently created bean itself.
+                                continue;
+                            }
+                        }
+                        throw ex;
+                    }
+                }
+            }
+        }
+        return advisors;
+    }
 }
 ```
 
 接着，aspectJAdvisorsBuilder的查找方法稍微麻烦一些，他取出了所有的JavaBean并依次检查两个规则
-    1. 类上带了@Aspect注解
-    2. 没有使用AspectJ创建静态代理类，这是为了避免重复创建代理类，也是Spring规范性的要求。
+1. 类上带了@Aspect注解
+2. 没有使用AspectJ创建静态代理类，这是为了避免重复创建代理类，也是Spring规范性的要求。
 ```java
 public class BeanFactoryAspectJAdvisorsBuilder {
     public List<Advisor> buildAspectJAdvisors() {
-		List<String> aspectNames = this.aspectBeanNames;
+        List<String> aspectNames = this.aspectBeanNames;
 
-		if (aspectNames == null) {
-			synchronized (this) {
-				aspectNames = this.aspectBeanNames;
-				if (aspectNames == null) {
-					List<Advisor> advisors = new ArrayList<>();
-					aspectNames = new ArrayList<>();
-					String[] beanNames = BeanFactoryUtils.beanNamesForTypeIncludingAncestors(
-							this.beanFactory, Object.class, true, false);
-					for (String beanName : beanNames) {
-						if (!isEligibleBean(beanName)) {
-							continue;
-						}
-						// We must be careful not to instantiate beans eagerly as in this case they
-						// would be cached by the Spring container but would not have been weaved.
-						Class<?> beanType = this.beanFactory.getType(beanName, false);
-						if (beanType == null) {
-							continue;
-						}
-						if (this.advisorFactory.isAspect(beanType)) {
-							aspectNames.add(beanName);
-							AspectMetadata amd = new AspectMetadata(beanType, beanName);
-							if (amd.getAjType().getPerClause().getKind() == PerClauseKind.SINGLETON) {
-								MetadataAwareAspectInstanceFactory factory =
-										new BeanFactoryAspectInstanceFactory(this.beanFactory, beanName);
-								List<Advisor> classAdvisors = this.advisorFactory.getAdvisors(factory);
-								if (this.beanFactory.isSingleton(beanName)) {
-									this.advisorsCache.put(beanName, classAdvisors);
-								}
-								else {
-									this.aspectFactoryCache.put(beanName, factory);
-								}
-								advisors.addAll(classAdvisors);
-							}
-							else {
-								// Per target or per this.
-								if (this.beanFactory.isSingleton(beanName)) {
-									throw new IllegalArgumentException("Bean with name '" + beanName +
-											"' is a singleton, but aspect instantiation model is not singleton");
-								}
-								MetadataAwareAspectInstanceFactory factory =
-										new PrototypeAspectInstanceFactory(this.beanFactory, beanName);
-								this.aspectFactoryCache.put(beanName, factory);
-								advisors.addAll(this.advisorFactory.getAdvisors(factory));
-							}
-						}
-					}
-					this.aspectBeanNames = aspectNames;
-					return advisors;
-				}
-			}
-		}
+        if (aspectNames == null) {
+            synchronized (this) {
+                aspectNames = this.aspectBeanNames;
+                if (aspectNames == null) {
+                    List<Advisor> advisors = new ArrayList<>();
+                    aspectNames = new ArrayList<>();
+                    String[] beanNames = BeanFactoryUtils.beanNamesForTypeIncludingAncestors(
+                            this.beanFactory, Object.class, true, false);
+                    for (String beanName : beanNames) {
+                        if (!isEligibleBean(beanName)) {
+                            continue;
+                        }
+                        // We must be careful not to instantiate beans eagerly as in this case they
+                        // would be cached by the Spring container but would not have been weaved.
+                        Class<?> beanType = this.beanFactory.getType(beanName, false);
+                        if (beanType == null) {
+                            continue;
+                        }
+                        if (this.advisorFactory.isAspect(beanType)) {
+                            aspectNames.add(beanName);
+                            AspectMetadata amd = new AspectMetadata(beanType, beanName);
+                            if (amd.getAjType().getPerClause().getKind() == PerClauseKind.SINGLETON) {
+                                MetadataAwareAspectInstanceFactory factory =
+                                        new BeanFactoryAspectInstanceFactory(this.beanFactory, beanName);
+                                List<Advisor> classAdvisors = this.advisorFactory.getAdvisors(factory);
+                                if (this.beanFactory.isSingleton(beanName)) {
+                                    this.advisorsCache.put(beanName, classAdvisors);
+                                }
+                                else {
+                                    this.aspectFactoryCache.put(beanName, factory);
+                                }
+                                advisors.addAll(classAdvisors);
+                            }
+                            else {
+                                // Per target or per this.
+                                if (this.beanFactory.isSingleton(beanName)) {
+                                    throw new IllegalArgumentException("Bean with name '" + beanName +
+                                            "' is a singleton, but aspect instantiation model is not singleton");
+                                }
+                                MetadataAwareAspectInstanceFactory factory =
+                                        new PrototypeAspectInstanceFactory(this.beanFactory, beanName);
+                                this.aspectFactoryCache.put(beanName, factory);
+                                advisors.addAll(this.advisorFactory.getAdvisors(factory));
+                            }
+                        }
+                    }
+                    this.aspectBeanNames = aspectNames;
+                    return advisors;
+                }
+            }
+        }
     }
 }
 ```
@@ -299,46 +301,46 @@ public class BeanFactoryAspectJAdvisorsBuilder {
 `findAdvisorsThatCanApply`方法依次取出Advisor的PointCut进行匹配，过滤出符合当前类的Advisor
 ``` java
 public abstract class AopUtils {
-	public static boolean canApply(Advisor advisor, Class<?> targetClass, boolean hasIntroductions) {
-		if (advisor instanceof IntroductionAdvisor) {
-			return ((IntroductionAdvisor) advisor).getClassFilter().matches(targetClass);
-		}
-		else if (advisor instanceof PointcutAdvisor) {
-			PointcutAdvisor pca = (PointcutAdvisor) advisor;
-			return canApply(pca.getPointcut(), targetClass, hasIntroductions);
-		}
-		else {
-			// It doesn't have a pointcut so we assume it applies.
-			return true;
-		}
-	}
+    public static boolean canApply(Advisor advisor, Class<?> targetClass, boolean hasIntroductions) {
+        if (advisor instanceof IntroductionAdvisor) {
+            return ((IntroductionAdvisor) advisor).getClassFilter().matches(targetClass);
+        }
+        else if (advisor instanceof PointcutAdvisor) {
+            PointcutAdvisor pca = (PointcutAdvisor) advisor;
+            return canApply(pca.getPointcut(), targetClass, hasIntroductions);
+        }
+        else {
+            // It doesn't have a pointcut so we assume it applies.
+            return true;
+        }
+    }
 }
 ```
 
 ### extendAdvisors - 通过其他方式获取Advisor
 
-前面是通过`findCandidateAdvisors`方法从用户代码中获取Advisor，Spring也提供了一种途径来创建额外的Advisor，例如在`AspectJAwareAdvisorAutoProxyCreator`中就添加了`ExposeInvocationInterceptor`
+前面是通过`findCandidateAdvisors`方法从用户代码中获取Advisor，Spring也给Creator提供了一种途径来创建额外的Advisor，例如在`AspectJAwareAdvisorAutoProxyCreator`中就添加了`ExposeInvocationInterceptor`
 ```java
 public abstract class AspectJProxyUtils {
     public static boolean makeAdvisorChainAspectJCapableIfNecessary(List<Advisor> advisors) {
-		// Don't add advisors to an empty list; may indicate that proxying is just not required
-		if (!advisors.isEmpty()) {
-			boolean foundAspectJAdvice = false;
-			for (Advisor advisor : advisors) {
-				// Be careful not to get the Advice without a guard, as this might eagerly
-				// instantiate a non-singleton AspectJ aspect...
-				if (isAspectJAdvice(advisor)) {
-					foundAspectJAdvice = true;
-					break;
-				}
-			}
-			if (foundAspectJAdvice && !advisors.contains(ExposeInvocationInterceptor.ADVISOR)) {
-				advisors.add(0, ExposeInvocationInterceptor.ADVISOR);
-				return true;
-			}
-		}
-		return false;
-	}
+        // Don't add advisors to an empty list; may indicate that proxying is just not required
+        if (!advisors.isEmpty()) {
+            boolean foundAspectJAdvice = false;
+            for (Advisor advisor : advisors) {
+                // Be careful not to get the Advice without a guard, as this might eagerly
+                // instantiate a non-singleton AspectJ aspect...
+                if (isAspectJAdvice(advisor)) {
+                    foundAspectJAdvice = true;
+                    break;
+                }
+            }
+            if (foundAspectJAdvice && !advisors.contains(ExposeInvocationInterceptor.ADVISOR)) {
+                advisors.add(0, ExposeInvocationInterceptor.ADVISOR);
+                return true;
+            }
+        }
+        return false;
+    }
 }
 ```
 
@@ -347,28 +349,30 @@ public abstract class AspectJProxyUtils {
 先看代码：
 ```java
 public class AspectJAwareAdvisorAutoProxyCreator extends AbstractAdvisorAutoProxyCreator {
-	protected List<Advisor> sortAdvisors(List<Advisor> advisors) {
-		List<PartiallyComparableAdvisorHolder> partiallyComparableAdvisors = new ArrayList<>(advisors.size());
-		for (Advisor advisor : advisors) {
-			partiallyComparableAdvisors.add(
-					new PartiallyComparableAdvisorHolder(advisor, DEFAULT_PRECEDENCE_COMPARATOR));
-		}
-		List<PartiallyComparableAdvisorHolder> sorted = PartialOrder.sort(partiallyComparableAdvisors);
-		if (sorted != null) {
-			List<Advisor> result = new ArrayList<>(advisors.size());
-			for (PartiallyComparableAdvisorHolder pcAdvisor : sorted) {
-				result.add(pcAdvisor.getAdvisor());
-			}
-			return result;
-		}
-		else {
-			return super.sortAdvisors(advisors);
-		}
-	}
+    protected List<Advisor> sortAdvisors(List<Advisor> advisors) {
+        List<PartiallyComparableAdvisorHolder> partiallyComparableAdvisors = new ArrayList<>(advisors.size());
+        for (Advisor advisor : advisors) {
+            partiallyComparableAdvisors.add(
+                    new PartiallyComparableAdvisorHolder(advisor, DEFAULT_PRECEDENCE_COMPARATOR));
+        }
+        List<PartiallyComparableAdvisorHolder> sorted = PartialOrder.sort(partiallyComparableAdvisors);
+        if (sorted != null) {
+            List<Advisor> result = new ArrayList<>(advisors.size());
+            for (PartiallyComparableAdvisorHolder pcAdvisor : sorted) {
+                result.add(pcAdvisor.getAdvisor());
+            }
+            return result;
+        }
+        else {
+            return super.sortAdvisors(advisors);
+        }
+    }
 }
 ```
 
 排序的代码比较简单，直接通过Advisor的order属性进行排序，值得注意的是，当两个Advicor的order相同时，队列中靠前的对象会被排到前列，虽然`BeanFactoryUtils.beanNamesForTypeIncludingAncestors`是无序的，但`AnnotationAwareAspectJAutoProxyCreator`的`findCandidateAdvisors`分两步加载原生SpringAOP和AspectJ，注定了原生SpringAOP优先级比AspectJ更高。
+
+通过观察`BeanFactoryTransactionAttributeSourceAdvisor`，可以知道他是继承Advisor实现的切面，并且order是整形最大值，也就是在`before`中会最先执行。但如果同时又存在其他同类型的切面，就无法保证切面之间事务的有效性了。
 
 
 ## 总结
