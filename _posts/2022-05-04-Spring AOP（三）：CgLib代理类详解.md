@@ -154,7 +154,7 @@ private static final void CGLIB$BIND_CALLBACKS(Object var0) {
 
 ### 其他
 
-除了上述方法，代理类中还存在其他的一些方法，例如CgLib提供了
+当然，CgLib的功能还不止这些，例如CgLib提供了一系列构造方法以适应并获取不同的代理实例，又如创建代理类的同时还会创建继承自FastClass的子类用来优化和代替反射调用，更多的细节就待读者深入研究了。
 
 ## Spring中的动态代理
 
