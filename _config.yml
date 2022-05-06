@@ -23,7 +23,7 @@ timezone: Asia/Shanghai
 
 title: ZETAs' Blog                          # the main title
 
-tagline: Talk is cheep. Show me your code.   # it will display as the sub-title
+tagline: Talk is cheap. Show me the code.   # it will display as the sub-title
 
 description: >-                        # used by seo meta and the atom feed
   A minimal, responsive, and powerful Jekyll theme for presenting professional writing.
