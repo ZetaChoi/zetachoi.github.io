@@ -273,15 +273,12 @@ fixedCallbacks[x] = new FixedChainStaticTargetInterceptor(
 ```
 
 Callbacks分别是：
-- aopInterceptor： 
+- aopInterceptor：  
     DynamicAdvisedInterceptor，通用拦截器，会获取所有切面并依次执行，也是前两篇文章中讲解过的拦截器。
-
 - targetInterceptor：   
     直接执行目标方法。配置`expose-proxy="true"`可以将代理类暴露给线程，从而通过`AopContext.currentProxy()`获取代理类，通常用于解决类内方法调方法时切面失效的问题。
-
 - SerializableNoOp：   
     啥也不做，也不会创建对应的拦截器，与CgLib提供的`NoOp.INSTANCE`相比添加了序列化功能。
-
 - targetDispatcher：  
     指向被代理类的Dispatcher
 - advisedDispatcher：  
@@ -297,23 +294,23 @@ Callbacks分别是：
 
 ### CallbackFilter
 紧接着，Spring配置CallbackFilter来决定具体处理方法的Callback，他们遵循以下规则：
-#### _final类型方法_
+- _final类型方法_  
 不使用Callback，`return 2`，即配置为`SerializableNoOp`。
-#### _equals()方法_
+- _equals()方法_  
 `return 5`，即配置为`EqualsInterceptor`。
-#### _hashcode()方法_
+- _hashcode()方法_  
 `return 6`，即配置为`HashCodeInterceptor`。
-#### _Advised接口中的方法_
+- _Advised接口中的方法_  
 `return 4`，即配置为`AdvisedDispatcher`。还记得前面关于Advised接口方法在代理类中没有实现的疑问吗？从这就能看出，这些方法是通过`AdvisedDispatcher`分发给了`advised`对象处理了，从字节码也能看出调用的是advised的方法。
-#### _被代理的方法_
+- _被代理的方法_  
 通过`advised.getInterceptorsAndDynamicInterceptionAdvice`获取当前方法的切面，从而判断是方法是否被代理。如果是静态方法并且Advice链已冻结，优化为`fixedCallbacks`中的回调，否则`return 0`使用`DynamicAdvisedInterceptor`。
-#### _通过配置`expose-proxy="true"`暴露代理的方法_
+- _通过配置`expose-proxy="true"`暴露代理的方法_  
 由于存在切面，同样需要使用`DynamicAdvisedInterceptor`，以取得链式执行的效果。
-#### _未被代理的方法_
+- _未被代理的方法_  
 原则上是直接交由被代理方法执行，但要细分几种情况：
-- 暴露代理的非静态方法：`return 1`，即配置为`targetInterceptor`。从而保持AopContext的特性。
-- `return this;`的方法：由于`this`是被代理类，如果不做特殊处理，会导致后续的方法调用都无法代理，因此配置为`targetInterceptor`，后者会将返回值包装为代理对象。
-- 其他方法：`return 3`，通过`targetDispatcher`直接交由被代理类执行。
+    - 暴露代理的非静态方法：`return 1`，即配置为`targetInterceptor`。从而保持AopContext的特性。
+    - `return this;`的方法：由于`this`是被代理类，如果不做特殊处理，会导致后续的方法调用都无法代理，因此配置为`targetInterceptor`，后者会将返回值包装为代理对象。
+    - 其他方法：`return 3`，通过`targetDispatcher`直接交由被代理类执行。
 
 ### createProxyClassAndInstance
 最终，通过`enhancer.create()`完成整个代理类的创建工作。
