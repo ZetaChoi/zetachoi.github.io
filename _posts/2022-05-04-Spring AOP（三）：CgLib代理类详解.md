@@ -91,7 +91,7 @@ public class TestMain {
 ```
 
 编译并执行，可以看到执行的是被代理过的方法。
-![2-1 cglib_demo](/assets/img/20220504/cglib_demo.png)_1-2 cglib demo_
+![2-1 cglib_demo](/assets/img/20220504/cglib_demo.png)_2-1 cglib demo_
 
 ## 代理类分析
 
@@ -176,7 +176,7 @@ private static final void CGLIB$BIND_CALLBACKS(Object var0) {
 
 ## Spring中的动态代理
 
-从`getProxy`开始
+从`getProxy`开始看，虽然代码比较长，但整个逻辑是很清晰的，耐下心​一行行看下去。
 ```java
 class CglibAopProxy implements AopProxy, Serializable {
     @Override
@@ -303,7 +303,7 @@ Callbacks分别是：
 - _Advised接口中的方法_  
 `return 4`，即配置为`AdvisedDispatcher`。还记得前面关于Advised接口方法在代理类中没有实现的疑问吗？从这就能看出，这些方法是通过`AdvisedDispatcher`分发给了`advised`对象处理了，从字节码也能看出调用的是advised的方法。
 - _被代理的方法_  
-通过`advised.getInterceptorsAndDynamicInterceptionAdvice`获取当前方法的切面，从而判断是方法是否被代理。如果是静态方法并且Advice链已冻结，优化为`fixedCallbacks`中的回调，否则`return 0`使用`DynamicAdvisedInterceptor`。
+通过`advised.getInterceptorsAndDynamicInterceptionAdvice`获取当前方法的切面，从而判断方法是否被代理。如果是静态方法并且Advice链已冻结，优化为`fixedCallbacks`中的回调，否则`return 0`使用`DynamicAdvisedInterceptor`。
 - _通过配置`expose-proxy="true"`暴露代理的方法_  
 由于存在切面，同样需要使用`DynamicAdvisedInterceptor`，以取得链式执行的效果。
 - _未被代理的方法_  
