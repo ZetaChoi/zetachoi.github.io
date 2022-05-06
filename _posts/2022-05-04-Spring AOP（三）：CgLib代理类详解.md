@@ -93,7 +93,9 @@ public class TestMain {
 ![2-1 cglib_demo](/assets/img/20220504/cglib_demo.png)_2-1 cglib demo_
 
 ### classFilter
-上面的例子中使用`PersonHelloInterceptor`代理了所有的方法，但这通常不是我们的目的，如果只想代理`whoAmI()`方法该怎么做？为此CgLib提供了classFilter的功能。将代码改成以下形式：
+上面的例子中使用`PersonHelloInterceptor`代理了所有的方法，但这通常不是我们的目的，如果只想代理`whoAmI()`方法该怎么做？为此CgLib提供了classFilter的功能。
+
+将代码改成以下形式：
 ```java
 public class TestMain {
 
@@ -122,7 +124,7 @@ public class TestMain {
 }
 ```
 
-再次编执行，这次只通过代理增强了`whoAmI()`方法
+再次编译执行，这次只通过代理增强了`whoAmI()`方法
 ![2-2 cglib_demo_classFilter](/assets/img/20220504/cglib_demo_classFilter.png)_2-2 cglib demo classFilter_
 
 ### Dsipacher
