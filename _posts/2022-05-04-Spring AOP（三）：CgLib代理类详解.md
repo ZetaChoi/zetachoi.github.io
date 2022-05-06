@@ -273,21 +273,21 @@ fixedCallbacks[x] = new FixedChainStaticTargetInterceptor(
 ```
 
 Callbacks分别是：
-- aopInterceptor：  
+- _aopInterceptor_  
     DynamicAdvisedInterceptor，通用拦截器，会获取所有切面并依次执行，也是前两篇文章中讲解过的拦截器。
-- targetInterceptor：   
+- _targetInterceptor_   
     直接执行目标方法。配置`expose-proxy="true"`可以将代理类暴露给线程，从而通过`AopContext.currentProxy()`获取代理类，通常用于解决类内方法调方法时切面失效的问题。
-- SerializableNoOp：   
+- _SerializableNoOp_   
     啥也不做，也不会创建对应的拦截器，与CgLib提供的`NoOp.INSTANCE`相比添加了序列化功能。
-- targetDispatcher：  
+- _targetDispatcher_  
     指向被代理类的Dispatcher
-- advisedDispatcher：  
+- _advisedDispatcher_  
     指向被advised的Dispatcher
-- EqualsInterceptor:  
+- _EqualsInterceptor_  
     Equals方法拦截器。
-- HashCodeInterceptor：  
+- _HashCodeInterceptor_  
     HashCode方法拦截器。
-- fixedCallbacks：   
+- _fixedCallbacks_   
     当前类为静态类，并且Advice链已冻结时，会用FixedChainStaticTargetInterceptor优化性能。功能与DynamicAdvisedInterceptor完全一致。
 
 留意出现一种新的callback类型：`Dispatcher`，它表示将方法的执行转发给Dispatcher对象。Spring通过它使得代理类能动态获取被代理类实例和advised实例。
