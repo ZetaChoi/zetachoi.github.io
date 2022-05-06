@@ -124,13 +124,13 @@ public class DefaultAdvisorChainFactory implements AdvisorChainFactory, Serializ
 往前跟踪堆栈，ProxyFactory创建Proxy实例时，通过判断当前对象是否实现了接口，决定采用CgLib还是Jdk代理，这跟我们通常印象是一致的：
 ![3-3 breakpoint_createAopProxy](/assets/img/20220425/breakpoint_createAopProxy.png)_3-3 breakpoint createAopProxy_
 
-再往上，这一步非常关键，虽然前面跟踪的都是AopProxy构造方法，但上游调用的实际上是getProxy，ProxyFactory同时完成了创建AopProxy和湖区代理对象(getProxy)的功能。getProxy方法非常重要，请先记住它，我会在下一篇文章展开讨论。这里只需要知道，上游获取的实际上是目标类的代理对象：
+从某种意义上讲这一步很关键，请先记住getProxy方法，我会在下一篇文章展开讨论。虽然前面跟踪的都是AopProxy构造方法，但上游调用的实际上是getProxy，ProxyFactory同时完成了创建AopProxy和创建代理对象的功能：
 ![3-4 breakpoint_getProxy](/assets/img/20220425/breakpoint_getProxy.png)_3-4 breakpoint getProxy_
 
-继续跟踪，终于找到了创建advisors对象的地方，但在阅读buildAdvisor源码后可以发现，buildAdvisor只是获取了Interceptor实例并创建与之匹配的Advisor对象，没有什么特别之处。此时阅读源码的重心就从"了解advisor构造过程"，转移到"了解Interceptor构造过程"上了。
+继续跟踪，终于找到了创建advisors对象的地方，但在阅读buildAdvisor源码后可以发现，buildAdvisor获取了Interceptor实例并包装成的对应的Advisor，除此之外没有什么特别之处。于是把阅读源码的重心转移成"了解Interceptor构造过程"。
 ![3-5 breakpoint_creator_createProxy](/assets/img/20220425/breakpoint_creator_createProxy.png)_3-5 breakpoint createProxy_
 
-前面这部分堆栈需要连着看，可以发现一切的源头`doCreateBean`，Spring在创建完Bean实例后，进行注入成员变量等初始化工作，并进行`applyBeanPostProcessors`,PostProcessors可以理解为对bean进行特殊处理的包装器，这其中就包含了支撑AOP功能的`AbstractAutoProxyCreator`。AbstractAutoProxyCreator依据具体情况(是否存在Interceptor)决定是否要给Bean添加代理对象，并且将这个代理对象作为结果返回，BeanFactory最终创建并缓存的Bean实例，也会替换为这个代理对象。
+前面这部分堆栈需要连着看，可以发现一切的源头`doCreateBean`，Spring在创建完Bean实例后，进行注入成员变量等初始化工作，并调用`applyBeanPostProcessors`,PostProcessors可以理解为对bean进行特殊处理的包装器，这其中就包含了支撑AOP功能的`AbstractAutoProxyCreator`。AbstractAutoProxyCreator依据具体情况(是否存在Interceptor)决定是否要将Bean包装成代理对象，并且将代理对象作为结果返回，BeanFactory最终也会将这个代理对象缓存为JavaBean实例。
 ![3-6 breakpoint_wrapIfNecessary](/assets/img/20220425/breakpoint_wrapIfNecessary.png)_3-6 breakpoint wrapIfNecessary_
 
 至此，整个AOP初始化的过程就分析完了。
@@ -139,10 +139,10 @@ public class DefaultAdvisorChainFactory implements AdvisorChainFactory, Serializ
 
 了解完AOP的加载过程，继续研究Interceptor初始化，在图3-6中可以看出，Spring调用`getAdvicesAndAdvisorsForBean`，并依据Interceptor集合是否为空，决定是否创建代理对象。
 
-由于`getAdvicesAndAdvisorsForBean`存在多种实现，在Variable列表中右键this，选择Jump To Type Source：
+`getAdvicesAndAdvisorsForBean`存在多种实现，可以在Variable列表中右键this，选择Jump To Type Source：
 ![4-1 breakpoint_jumpToTypeSource](/assets/img/20220425/breakpoint_jumpToTypeSource.png)_4-1 breakpoint jumpToTypeSource_
 
-点击`Ctrl+F12`搜索getAdvicesAndAdvisorsForBean，点击跳转即可找到当前流程中正确的实现：
+接着点击`Ctrl+F12`搜索getAdvicesAndAdvisorsForBean，跳转即是当前流程中对应的实现了：
 ![4-2 breakpoint_search](/assets/img/20220425/breakpoint_search.png)_4-2 breakpoint search_
 
 继续跟踪，找到了`findEligibleAdvisors`方法
@@ -161,9 +161,7 @@ public abstract class AbstractAdvisorAutoProxyCreator extends AbstractAutoProxyC
 ```
 
 ### findCandidateAdvisors - 获取所有的Advisor
-一行行来看，首先是`findCandidateAdvisors`，值得注意的是，`AnnotationAwareAspectJAutoProxyCreator`是`AbstractAdvisorAutoProxyCreator`的一种实现，使得不光可以用实现Advisor接口的方式创建切面(原生的SpringAOP)，也可以用Aspectj的API更简便地声明切面。
-
-`AnnotationAwareAspectJAutoProxyCreator`重写了`findCandidateAdvisors`方法，并且会在代码中存在Aspectj类型切面时生效：
+一行行来看，首先是`findCandidateAdvisors`，值得注意的是，`AnnotationAwareAspectJAutoProxyCreator`是`AbstractAdvisorAutoProxyCreator`的一种实现，它通过重写了`findCandidateAdvisors`方法，使得不光可以用实现Advisor接口的方式创建切面(原生的SpringAOP)，也可以用Aspectj的API更简便地声明切面：
 ```java
 public class AnnotationAwareAspectJAutoProxyCreator extends AspectJAwareAdvisorAutoProxyCreator {
     @Override
@@ -234,9 +232,9 @@ public class BeanFactoryAdvisorRetrievalHelper {
 }
 ```
 
-接着，aspectJAdvisorsBuilder的查找方法稍微麻烦一些，他取出了所有的JavaBean并依次检查两个规则
+aspectJAdvisorsBuilder的查找方法稍微麻烦一些，他取出了所有的JavaBean并筛选出符合两个规则的类
 1. 类上带了@Aspect注解
-2. 没有使用AspectJ创建静态代理类，这是为了避免重复创建代理类，也是Spring规范性的要求。
+2. 使用了AspectJ的API，但未在编译时创建静态代理的类。这是为了避免重复创建代理类，也是Spring规范性的要求。
 
 ```java
 public class BeanFactoryAspectJAdvisorsBuilder {
@@ -320,7 +318,7 @@ public abstract class AopUtils {
 
 ### extendAdvisors - 通过其他方式获取Advisor
 
-前面是通过`findCandidateAdvisors`方法从用户代码中获取Advisor，Spring也给Creator提供了一种途径来创建额外的Advisor，例如在`AspectJAwareAdvisorAutoProxyCreator`中就添加了`ExposeInvocationInterceptor`
+前面是通过`findCandidateAdvisors`方法从用户代码中获取Advisor，Spring也为Creator提供了一种途径来创建额外的Advisor，例如在`AspectJAwareAdvisorAutoProxyCreator`中就添加了`ExposeInvocationInterceptor`
 ```java
 public abstract class AspectJProxyUtils {
     public static boolean makeAdvisorChainAspectJCapableIfNecessary(List<Advisor> advisors) {
