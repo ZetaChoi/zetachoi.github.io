@@ -1,5 +1,5 @@
 ---
-title: Spring AOP（三）：CgLib代理类详解（施工中）
+title: Spring AOP（三）：CgLib代理类详解
 date: 2022-05-04 19:22:12 +0800
 categories: [源码阅读, Spring-AOP]
 tags: [Java, Spring, AOP, CgLib]
@@ -179,65 +179,65 @@ private static final void CGLIB$BIND_CALLBACKS(Object var0) {
 从`getProxy`开始
 ```java
 class CglibAopProxy implements AopProxy, Serializable {
-	@Override
-	public Object getProxy(@Nullable ClassLoader classLoader) {
-		if (logger.isTraceEnabled()) {
-			logger.trace("Creating CGLIB proxy: " + this.advised.getTargetSource());
-		}
+    @Override
+    public Object getProxy(@Nullable ClassLoader classLoader) {
+        if (logger.isTraceEnabled()) {
+            logger.trace("Creating CGLIB proxy: " + this.advised.getTargetSource());
+        }
 
-		try {
-			Class<?> rootClass = this.advised.getTargetClass();
-			Assert.state(rootClass != null, "Target class must be available for creating a CGLIB proxy");
+        try {
+            Class<?> rootClass = this.advised.getTargetClass();
+            Assert.state(rootClass != null, "Target class must be available for creating a CGLIB proxy");
 
-			Class<?> proxySuperClass = rootClass;
-			if (rootClass.getName().contains(ClassUtils.CGLIB_CLASS_SEPARATOR)) {
-				proxySuperClass = rootClass.getSuperclass();
-				Class<?>[] additionalInterfaces = rootClass.getInterfaces();
-				for (Class<?> additionalInterface : additionalInterfaces) {
-					this.advised.addInterface(additionalInterface);
-				}
-			}
+            Class<?> proxySuperClass = rootClass;
+            if (rootClass.getName().contains(ClassUtils.CGLIB_CLASS_SEPARATOR)) {
+                proxySuperClass = rootClass.getSuperclass();
+                Class<?>[] additionalInterfaces = rootClass.getInterfaces();
+                for (Class<?> additionalInterface : additionalInterfaces) {
+                    this.advised.addInterface(additionalInterface);
+                }
+            }
 
-			// Validate the class, writing log messages as necessary.
-			validateClassIfNecessary(proxySuperClass, classLoader);
+            // Validate the class, writing log messages as necessary.
+            validateClassIfNecessary(proxySuperClass, classLoader);
 
-			// Configure CGLIB Enhancer...
-			Enhancer enhancer = createEnhancer();
-			if (classLoader != null) {
-				enhancer.setClassLoader(classLoader);
-				if (classLoader instanceof SmartClassLoader &&
-						((SmartClassLoader) classLoader).isClassReloadable(proxySuperClass)) {
-					enhancer.setUseCache(false);
-				}
-			}
-			enhancer.setSuperclass(proxySuperClass);
-			enhancer.setInterfaces(AopProxyUtils.completeProxiedInterfaces(this.advised));
-			enhancer.setNamingPolicy(SpringNamingPolicy.INSTANCE);
-			enhancer.setStrategy(new ClassLoaderAwareGeneratorStrategy(classLoader));
+            // Configure CGLIB Enhancer...
+            Enhancer enhancer = createEnhancer();
+            if (classLoader != null) {
+                enhancer.setClassLoader(classLoader);
+                if (classLoader instanceof SmartClassLoader &&
+                        ((SmartClassLoader) classLoader).isClassReloadable(proxySuperClass)) {
+                    enhancer.setUseCache(false);
+                }
+            }
+            enhancer.setSuperclass(proxySuperClass);
+            enhancer.setInterfaces(AopProxyUtils.completeProxiedInterfaces(this.advised));
+            enhancer.setNamingPolicy(SpringNamingPolicy.INSTANCE);
+            enhancer.setStrategy(new ClassLoaderAwareGeneratorStrategy(classLoader));
 
-			Callback[] callbacks = getCallbacks(rootClass);
-			Class<?>[] types = new Class<?>[callbacks.length];
-			for (int x = 0; x < types.length; x++) {
-				types[x] = callbacks[x].getClass();
-			}
-			// fixedInterceptorMap only populated at this point, after getCallbacks call above
-			enhancer.setCallbackFilter(new ProxyCallbackFilter(
-					this.advised.getConfigurationOnlyCopy(), this.fixedInterceptorMap, this.fixedInterceptorOffset));
-			enhancer.setCallbackTypes(types);
+            Callback[] callbacks = getCallbacks(rootClass);
+            Class<?>[] types = new Class<?>[callbacks.length];
+            for (int x = 0; x < types.length; x++) {
+                types[x] = callbacks[x].getClass();
+            }
+            // fixedInterceptorMap only populated at this point, after getCallbacks call above
+            enhancer.setCallbackFilter(new ProxyCallbackFilter(
+                    this.advised.getConfigurationOnlyCopy(), this.fixedInterceptorMap, this.fixedInterceptorOffset));
+            enhancer.setCallbackTypes(types);
 
-			// Generate the proxy class and create a proxy instance.
-			return createProxyClassAndInstance(enhancer, callbacks);
-		}
-		catch (CodeGenerationException | IllegalArgumentException ex) {
-			throw new AopConfigException("Could not generate CGLIB subclass of " + this.advised.getTargetClass() +
-					": Common causes of this problem include using a final class or a non-visible class",
-					ex);
-		}
-		catch (Throwable ex) {
-			// TargetSource.getTarget() failed
-			throw new AopConfigException("Unexpected AOP exception", ex);
-		}
-	}
+            // Generate the proxy class and create a proxy instance.
+            return createProxyClassAndInstance(enhancer, callbacks);
+        }
+        catch (CodeGenerationException | IllegalArgumentException ex) {
+            throw new AopConfigException("Could not generate CGLIB subclass of " + this.advised.getTargetClass() +
+                    ": Common causes of this problem include using a final class or a non-visible class",
+                    ex);
+        }
+        catch (Throwable ex) {
+            // TargetSource.getTarget() failed
+            throw new AopConfigException("Unexpected AOP exception", ex);
+        }
+    }
 }
 ```
 
@@ -268,19 +268,30 @@ Callback[] mainCallbacks = new Callback[] {
 ... 
 
 fixedCallbacks[x] = new FixedChainStaticTargetInterceptor(
-						chain, this.advised.getTargetSource().getTarget(), this.advised.getTargetClass());
+                        chain, this.advised.getTargetSource().getTarget(), this.advised.getTargetClass());
 
 ```
 
 Callbacks分别是：
-- aopInterceptor：DynamicAdvisedInterceptor，通用拦截器，会获取所有切面并依次执行，也是前两篇文章中讲解过的拦截器。
-- targetInterceptor：直接执行目标方法。配置`expose-proxy="true"`可以将代理类暴露给线程，从而通过`AopContext.currentProxy()`获取代理类，通常用于解决类内方法调方法时切面失效的问题。
-- SerializableNoOp：啥也不做，也不会创建对应的拦截器，与CgLib提供的`NoOp.INSTANCE`相比添加了序列化功能。
-- targetDispatcher：指向被代理类的Dispatcher
-- advisedDispatcher：指向被advised的Dispatcher
-- EqualsInterceptor: Equals方法拦截器。
-- HashCodeInterceptor：HashCode方法拦截器。
-- fixedCallbacks： 当前类为静态类，并且Advice链已冻结时，会用FixedChainStaticTargetInterceptor优化性能。功能与DynamicAdvisedInterceptor完全一致。
+- aopInterceptor： 
+    DynamicAdvisedInterceptor，通用拦截器，会获取所有切面并依次执行，也是前两篇文章中讲解过的拦截器。
+
+- targetInterceptor：   
+    直接执行目标方法。配置`expose-proxy="true"`可以将代理类暴露给线程，从而通过`AopContext.currentProxy()`获取代理类，通常用于解决类内方法调方法时切面失效的问题。
+
+- SerializableNoOp：   
+    啥也不做，也不会创建对应的拦截器，与CgLib提供的`NoOp.INSTANCE`相比添加了序列化功能。
+
+- targetDispatcher：  
+    指向被代理类的Dispatcher
+- advisedDispatcher：  
+    指向被advised的Dispatcher
+- EqualsInterceptor:  
+    Equals方法拦截器。
+- HashCodeInterceptor：  
+    HashCode方法拦截器。
+- fixedCallbacks：   
+    当前类为静态类，并且Advice链已冻结时，会用FixedChainStaticTargetInterceptor优化性能。功能与DynamicAdvisedInterceptor完全一致。
 
 留意出现一种新的callback类型：`Dispatcher`，它表示将方法的执行转发给Dispatcher对象。Spring通过它使得代理类能动态获取被代理类实例和advised实例。
 
