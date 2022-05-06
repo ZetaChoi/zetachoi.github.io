@@ -80,8 +80,7 @@ public class TestMain {
 
         Enhancer enhancer = new Enhancer();
         enhancer.setSuperclass(Person.class);
-        enhancer.setCallbacks(new Callback[]{NoOp.INSTANCE, new PersonHelloInterceptor()});
-        enhancer.setCallbackFilter(new PersonCallbackFilter());
+        enhancer.setCallback(new PersonHelloInterceptor());
         Person proxyPerson = (Person) enhancer.create();
 
         proxyPerson.hello();
@@ -92,6 +91,99 @@ public class TestMain {
 
 编译并执行，可以看到执行的是被代理过的方法。
 ![2-1 cglib_demo](/assets/img/20220504/cglib_demo.png)_2-1 cglib demo_
+
+### classFilter
+上面的例子中使用`PersonHelloInterceptor`代理了所有的方法，但这通常不是我们的目的，如果只想代理`whoAmI()`方法该怎么做？为此CgLib提供了classFilter的功能。将代码改成以下形式：
+```java
+public class TestMain {
+
+    public static void main(String[] args) {
+        System.setProperty(DebuggingClassWriter.DEBUG_LOCATION_PROPERTY, "/temp");
+
+        Enhancer enhancer = new Enhancer();
+        enhancer.setSuperclass(Person.class);
+        // 添加多个callback
+        enhancer.setCallbacks(new Callback[]{NoOp.INSTANCE, new PersonHelloInterceptor()});
+        // 配置CallbackFilter，返回值与Callback[]数组下标一一对应
+        enhancer.setCallbackFilter(new CallbackFilter() {
+            @Override
+            public int accept(Method method) {
+                if (method.getName().equals("whoAmI")) {
+                    return 1;
+                }
+                return 0;
+            }
+        });
+        Person proxyPerson = (Person) enhancer.create();
+
+        proxyPerson.hello();
+        proxyPerson.whoAmI();
+    }
+}
+```
+
+再次编执行，这次只通过代理增强了`whoAmI()`方法
+![2-2 cglib_demo_classFilter](/assets/img/20220504/cglib_demo_classFilter.png)_2-2 cglib demo classFilter_
+
+### Dsipacher
+除了`MethodInterceptor`，CgLib还提供了`Dsipacher`类型的callback,通过它能将方法转交给外部对象执行。
+
+先定义一个Dispatcher
+```java
+class PersonDispatcher implements Dispatcher {
+
+    private final Person proxy;
+
+    public PersonDispatcher(Person person) {
+        this.proxy = person;
+    }
+
+    @Override
+    public Object loadObject(){
+        return proxy;
+    }
+}
+```
+
+再来个特殊的Person
+```java
+class Tom extends Person {
+    @Override
+    public void hello() {
+        System.out.println("Surprise");
+    }
+
+    @Override
+    public void whoAmI() {
+        System.out.println("I'm Tom");
+    }
+}
+```
+
+修改测试代码
+```java
+public class TestMain {
+
+    public static void main(String[] args) {
+        System.setProperty(DebuggingClassWriter.DEBUG_LOCATION_PROPERTY, "/temp");
+
+        Person tom = new Tom();
+        PersonDispatcher callback = new PersonDispatcher(tom);
+
+        Enhancer enhancer = new Enhancer();
+        enhancer.setSuperclass(Person.class);
+        enhancer.setCallback(callback);
+        Person proxyPerson = (Person) enhancer.create();
+
+        proxyPerson.hello();
+        proxyPerson.whoAmI();
+    }
+}
+```
+
+最终效果如下：
+![2-3 cglib_demo_dispatch](/assets/img/20220504/cglib_demo_dispatch.png)_2-3 cglib demo dispatch_
+
 
 ## 代理类分析
 
@@ -289,8 +381,6 @@ Callbacks分别是：
     HashCode方法拦截器。
 - _fixedCallbacks_   
     当前类为静态类，并且Advice链已冻结时，会用FixedChainStaticTargetInterceptor优化性能。功能与DynamicAdvisedInterceptor完全一致。
-
-留意出现一种新的callback类型：`Dispatcher`，它表示将方法的执行转发给Dispatcher对象。Spring通过它使得代理类能动态获取被代理类实例和advised实例。
 
 ### CallbackFilter
 紧接着，Spring配置CallbackFilter来决定具体处理方法的Callback，他们遵循以下规则：

@@ -9,18 +9,18 @@ tags: [Java, Spring, AOP, Transation, Jdbc]
 ## 前言
 
 今天同事提出一套观点：
-1. Transation、Durid、jdbc中各有一个autoCommit配置项，相互不影响。
+1. Transation、Druid、jdbc中各有一个autoCommit配置项，相互不影响。
 2. Druid默认设置autoCommit为true。
 3. Spring开启事务时，Spring的autoCommit被设置为false。
-4. 由于Spring没有修改Durid的autoCommit状态，JDBC执行方式不受影响，相当于每次查询都是直接提交。
+4. 由于Spring没有修改Druid的autoCommit状态，JDBC执行方式不受影响，相当于每次查询都是直接提交。
 5. JDBC未开启事务，每次查询会调用connection.commit()。
 
 并得出结论：
-- 要将Durid启动参数中的autoCommit设置为flase，spring事务才会生效。
+- 要将Druid启动参数中的autoCommit设置为flase，spring事务才会生效。
 
 ## 同事的分析过程
 
-首先，Durid在初始化时可以配置autoCommit，并且在初始化连接时会配置JDBC的autoCommit。
+首先，Druid在初始化时可以配置autoCommit，并且在初始化连接时会配置JDBC的autoCommit。
 ![2-1 Druid配置](/assets/img/20200422/Druid_AutoCommitConfig.png)_2-1 Druid配置_
 ![2-2 Druid初始化连接](/assets/img/20200422/Druid_init.png)_2-2 Druid初始化连接_
 
@@ -168,9 +168,9 @@ public synchronized void execute(Query query, @Nullable ParameterList parameters
 
 经过上面分析，可以得出结论*观点3、观点5是错误的*。    
 
-反观同事的结论，我们应该配置Durid的AutoCommit状态为false吗？其实思考下就明白不行，这样相当于所有查询都自动加上了`conn.setAutoCommit(false)`，那一些简单的select方法由于没有手动调用commit，会直接执行异常。*观点6也是错误的。*
+反观同事的结论，我们应该配置Druid的AutoCommit状态为false吗？其实思考下就明白不行，这样相当于所有查询都自动加上了`conn.setAutoCommit(false)`，那一些简单的select方法由于没有手动调用commit，会直接执行异常。*观点6也是错误的。*
 
-但观点4我们还没搞明白：Spring有没有修改Durid的autoCommit状态？是不是每次查询都相当于直接提交？这个问题应该可以在Spring的事务逻辑中找到答案。
+但观点4我们还没搞明白：Spring有没有修改Druid的autoCommit状态？是不是每次查询都相当于直接提交？这个问题应该可以在Spring的事务逻辑中找到答案。
 
 ## Spring Transation
 
@@ -324,10 +324,10 @@ public class DataSourceTransactionManager extends AbstractPlatformTransactionMan
 
 ## 结论
 
-Spring没有修改Durid的autoCommit状态，并且跟其他任何的autoCommit配置都无关，因为他会在执行前判断连接的autoCommit状态，如果开启会强制关闭。
+Spring没有修改Druid的autoCommit状态，并且跟其他任何的autoCommit配置都无关，因为他会在执行前判断连接的autoCommit状态，如果开启会强制关闭。
 
 ## 后续思考
 
 至此，我们从JDBC开始到Spring梳理了一遍事务的执行过程，这部分的逻辑还是比较清晰的，关键是要熟练掌握源码阅读的方法和技巧。
 
-然而，我们还可以把问题继续问下去：为什么Spring可以这么暴力，直接将autoCommit设置成false，不会有不需要使用事务的场景吗？这个问题涉及到了整个AOP的加载和执行过程，我会在下一篇文章中展开讨论。
+我们还可以把问题继续问下去：为什么Spring可以这么暴力，直接将autoCommit设置成false，不会有不需要使用事务的场景吗？这个问题涉及到了整个AOP的加载和执行过程，我会在下一篇文章中展开讨论。
