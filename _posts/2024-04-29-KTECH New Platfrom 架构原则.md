@@ -1,6 +1,6 @@
 ---
-title: KTech New Platfrom 架构原则（后端）
-date: 2024-04-29 13:34:12 +0800
+title: KTech New Platfrom 架构原则
+date: 2024-04-29 13:34:02 +0800
 categories: [企业架构设计]
 tags: [架构设计]
 ---
@@ -76,7 +76,7 @@ Halo-Cloud
 import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.web.bind.annotation.GetMapping;
 
-@FeignClient(url = "http://localhost:8080")
+@FeignClient(url = "http://remote-service:8080")
 public interface RemoteServiceClient {
     @GetMapping("/hello")
     String sayHello();
